@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import scrolledtext, messagebox
+from tkinter import scrolledtext, messagebox, filedialog
 import re
 
 # YouTube Raw Data - 60 FPS Frame to Millisecond Mapping
@@ -147,6 +147,10 @@ class SubtitleConverterApp:
         self.root.title("유튜브 전용 60 FPS 자막 변환기")
         self.root.geometry("1400x750")
         
+        # Store last converted results
+        self.last_srt_result = ""
+        self.last_sbv_result = ""
+        
         # Title
         title_label = tk.Label(
             root, 
@@ -280,9 +284,47 @@ class SubtitleConverterApp:
         separator = tk.Frame(button_frame, height=2, bg="gray")
         separator.pack(fill=tk.X, pady=15, padx=10)
         
+        # Download section label
+        download_label = tk.Label(
+            button_frame,
+            text="💾 다운로드",
+            font=("맑은 고딕", 11, "bold")
+        )
+        download_label.pack(pady=(5, 10))
+        
+        # Download SRT button
+        download_srt_button = tk.Button(
+            button_frame,
+            text="📥 SRT 저장",
+            command=self.download_srt,
+            font=("맑은 고딕", 9),
+            bg="#4CAF50",
+            fg="white",
+            width=15,
+            height=1
+        )
+        download_srt_button.pack(pady=3, padx=10)
+        
+        # Download SBV button
+        download_sbv_button = tk.Button(
+            button_frame,
+            text="� SBV 저장",
+            command=self.download_sbv,
+            font=("맑은 고딕", 9),
+            bg="#2196F3",
+            fg="white",
+            width=15,
+            height=1
+        )
+        download_sbv_button.pack(pady=3, padx=10)
+        
+        # Separator
+        separator2 = tk.Frame(button_frame, height=2, bg="gray")
+        separator2.pack(fill=tk.X, pady=15, padx=10)
+        
         clear_button = tk.Button(
             button_frame,
-            text="🗑️ 초기화",
+            text="�🗑️ 초기화",
             command=self.clear_all,
             font=("맑은 고딕", 10),
             bg="#f44336",
@@ -303,8 +345,6 @@ class SubtitleConverterApp:
     
     def load_file(self):
         """Load TXT file into input area"""
-        from tkinter import filedialog
-        
         file_path = filedialog.askopenfilename(
             title="TXT 파일 선택",
             filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")]
@@ -331,6 +371,7 @@ class SubtitleConverterApp:
                 return
             
             result = convert_to_srt(subtitles)
+            self.last_srt_result = result  # Store for download
             self.output_text.delete("1.0", tk.END)
             self.output_text.insert("1.0", result)
             messagebox.showinfo("완료", f"SRT 변환 완료! ({len(subtitles)}개 자막)")
@@ -349,6 +390,7 @@ class SubtitleConverterApp:
                 return
             
             result = convert_to_sbv(subtitles)
+            self.last_sbv_result = result  # Store for download
             self.output_text.delete("1.0", tk.END)
             self.output_text.insert("1.0", result)
             messagebox.showinfo("완료", f"SBV 변환 완료! ({len(subtitles)}개 자막)")
@@ -369,6 +411,10 @@ class SubtitleConverterApp:
             srt_result = convert_to_srt(subtitles)
             sbv_result = convert_to_sbv(subtitles)
             
+            # Store both for download
+            self.last_srt_result = srt_result
+            self.last_sbv_result = sbv_result
+            
             combined = f"========== SRT 형식 ==========\n\n{srt_result}\n\n"
             combined += f"========== SBV 형식 ==========\n\n{sbv_result}"
             
@@ -379,10 +425,54 @@ class SubtitleConverterApp:
         except Exception as e:
             messagebox.showerror("오류", f"변환 중 오류 발생:\n{str(e)}")
     
+    def download_srt(self):
+        """Download SRT file"""
+        if not self.last_srt_result:
+            messagebox.showwarning("경고", "먼저 SRT 변환을 실행해주세요.")
+            return
+        
+        file_path = filedialog.asksaveasfilename(
+            title="SRT 파일 저장",
+            defaultextension=".srt",
+            filetypes=[("SRT Files", "*.srt"), ("All Files", "*.*")],
+            initialfile="subtitle.srt"
+        )
+        
+        if file_path:
+            try:
+                with open(file_path, 'w', encoding='utf-8') as file:
+                    file.write(self.last_srt_result)
+                messagebox.showinfo("완료", f"SRT 파일 저장 완료!\n{file_path}")
+            except Exception as e:
+                messagebox.showerror("오류", f"파일 저장 실패:\n{str(e)}")
+    
+    def download_sbv(self):
+        """Download SBV file"""
+        if not self.last_sbv_result:
+            messagebox.showwarning("경고", "먼저 SBV 변환을 실행해주세요.")
+            return
+        
+        file_path = filedialog.asksaveasfilename(
+            title="SBV 파일 저장",
+            defaultextension=".sbv",
+            filetypes=[("SBV Files", "*.sbv"), ("All Files", "*.*")],
+            initialfile="subtitle.sbv"
+        )
+        
+        if file_path:
+            try:
+                with open(file_path, 'w', encoding='utf-8') as file:
+                    file.write(self.last_sbv_result)
+                messagebox.showinfo("완료", f"SBV 파일 저장 완료!\n{file_path}")
+            except Exception as e:
+                messagebox.showerror("오류", f"파일 저장 실패:\n{str(e)}")
+    
     def clear_all(self):
         """Clear all text fields"""
         self.input_text.delete("1.0", tk.END)
         self.output_text.delete("1.0", tk.END)
+        self.last_srt_result = ""
+        self.last_sbv_result = ""
 
 
 def main():
